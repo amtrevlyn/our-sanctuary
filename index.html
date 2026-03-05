@@ -3,31 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Our Sanctuary | Wahyu & Rini</title>
+    <title>Our Sanctuary | Wahyu & Rinol</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         :root { --pink: #fb6f92; --matcha: #81c784; --bg: #fdf2f8; --deep-pink: #d63384; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(135deg, #ffc2d1, #e8f5e9); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; color: #4a4a4a; }
         .container { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 30px; width: 100%; max-width: 420px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; border: 2px solid white; }
+        
         h1 { color: var(--deep-pink); margin: 0; font-size: 1.8rem; }
         .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
+        
         .status-card { background: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; border: 1px solid #eee; }
         .clocks { display: flex; justify-content: space-around; margin-bottom: 15px; }
         .clock-box h3 { font-size: 0.65rem; margin: 0 0 5px 0; color: var(--matcha); text-transform: uppercase; }
         .time { font-size: 1.2rem; font-weight: bold; color: #333; }
         .countdown { background: var(--pink); color: white; padding: 12px; border-radius: 15px; font-weight: bold; font-size: 0.9rem; }
+        
         .daily-quote { background: #fff0f5; padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px dashed var(--pink); font-style: italic; font-size: 0.85rem; color: var(--deep-pink); line-height: 1.4; }
-        .user-selector { margin-bottom: 10px; padding: 10px; font-size: 0.8rem; border-radius: 10px; border: 1px solid var(--pink); width: 100%; background: white; }
+        
+        .user-selector { margin-bottom: 10px; padding: 10px; font-size: 0.8rem; border-radius: 10px; border: 1px solid var(--pink); width: 100%; background: white; cursor: pointer; }
+        
         #chat-box { height: 220px; overflow-y: auto; border: 1px solid #eee; padding: 12px; border-radius: 20px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
         .msg { padding: 10px 14px; border-radius: 15px; max-width: 80%; font-size: 0.85rem; position: relative; line-height: 1.4; }
         .msg.wahyu { align-self: flex-start; background: #ffe4e8; border-bottom-left-radius: 0; text-align: left; }
-        .msg.rini { align-self: flex-end; background: #e8f5e9; border-bottom-right-radius: 0; text-align: right; }
+        .msg.rinol { align-self: flex-end; background: #e8f5e9; border-bottom-right-radius: 0; text-align: right; }
         .sender-tag { font-size: 0.6rem; font-weight: bold; display: block; margin-bottom: 3px; opacity: 0.6; }
+        
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
         input[type="text"] { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; outline: none; }
         .btn-send { background: var(--pink); color: white; border: none; padding: 0 20px; border-radius: 12px; cursor: pointer; font-weight: bold; }
-        .btn-hug { background: white; color: var(--pink); border: 2px solid var(--pink); padding: 10px 25px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; cursor: pointer; width: 100%; }
+        
+        .btn-hug { background: white; color: var(--pink); border: 2px solid var(--pink); padding: 10px 25px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
+        .btn-hug:hover { background: var(--pink); color: white; }
+        
         .heart { position: fixed; font-size: 24px; pointer-events: none; animation: floatUp 3.5s ease-in forwards; z-index: 1000; }
         @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-100vh); opacity: 0; } }
     </style>
@@ -40,17 +49,17 @@
 
     <div class="status-card">
         <div class="clocks">
-            <div class="clock-box"><h3>Waktuku</h3><div id="clock1" class="time">00:00:00</div></div>
-            <div class="clock-box"><h3>Waktumu</h3><div id="clock2" class="time">00:00:00</div></div>
+            <div class="clock-box"><h3>Wahyu</h3><div id="clock1" class="time">00:00:00</div></div>
+            <div class="clock-box"><h3>Rinol</h3><div id="clock2" class="time">00:00:00</div></div>
         </div>
-        <div class="countdown"><div id="timer">Memuat waktu...</div></div>
+        <div class="countdown"><div id="timer">Menghitung rindu...</div></div>
     </div>
 
     <div id="daily-msg" class="daily-quote">"Memuat pesan spesial..."</div>
 
     <select id="user-role" class="user-selector">
         <option value="Wahyu">Aku Wahyu (Morowali Utara)</option>
-        <option value="Rini">Aku Rini (Berau)</option>
+        <option value="Rinol">Aku Rinol (Berau)</option>
     </select>
 
     <div id="chat-box"></div>
@@ -64,7 +73,7 @@
 </div>
 
 <script>
-    // Konfigurasi Firebase yang sudah kamu berikan
+    // Konfigurasi Firebase kamu
     const firebaseConfig = {
         apiKey: "AIzaSyCTR3QhEHG4lgU_1N4RWNDIZ_GCb5FUw_Q",
         authDomain: "yurin-e2687.firebaseapp.com",
@@ -78,7 +87,7 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Jam & Countdown
+    // Fungsi Jam & Countdown
     function updateDashboard() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString('id-ID', { hour12: false });
@@ -92,7 +101,7 @@
             const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((diff % (1000 * 60)) / 1000);
-            document.getElementById('timer').innerText = `${d} Hari ${h}j ${m}m ${s}s Lagi! ✈️`;
+            document.getElementById('timer').innerText = `${d} Hari ${h}j ${m}m ${s}s Menuju Ketemu! ✈️`;
         } else {
             document.getElementById('timer').innerText = "HARI INI KITA KETEMU! ❤️";
         }
@@ -100,25 +109,27 @@
     setInterval(updateDashboard, 1000);
     updateDashboard();
 
-    // Pesan Harian
+    // Daftar Pesan Harian
     const quotes = [
         "Jarak Morowali - Berau cuma angka, rasa sayangku selamanya. ❤️",
-        "Semangat kerjanya ya Keboo, jangan telat makan! 🧀",
+        "Semangat kerjanya ya Rinol sayang, jangan telat makan! 🧀",
         "Sabar ya, 31 Juli nanti kita makan matcha bareng! 🍵",
-        "Tiap detik yang berlalu bawa aku makin dekat ke kamu. ✨",
-        "Aku bangga punya kamu yang sabar nunggu di sana. I love you! 💖"
+        "Tiap detik yang berlalu bawa aku makin dekat ke Rinol. ✨",
+        "Aku bangga punya Rinol yang hebat nunggu di sana. I love you! 💖",
+        "Jangan lupa minum air yang banyak hari ini ya, Rinol! 💧",
+        "Rinol, kamu adalah alasan aku semangat kerja setiap hari. 🌸"
     ];
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     document.getElementById('daily-msg').innerText = `"${quotes[dayOfYear % quotes.length]}"`;
 
-    // Chat System
+    // Fitur Chat
     function sendMessage() {
         const user = document.getElementById('user-role').value;
         const text = document.getElementById('msg-input').value;
         if (text.trim() !== "") {
             database.ref("messages").push().set({
                 sender: user, text: text, timestamp: Date.now()
-            }).catch(() => alert("Gagal kirim: Pastikan 'Rules' di Firebase sudah Publish!"));
+            });
             document.getElementById('msg-input').value = "";
         }
     }
@@ -136,7 +147,7 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 
-    // Animasi Peluk
+    // Animasi Hati
     function spawnHearts() {
         for(let i=0; i<15; i++) {
             const h = document.createElement('div'); h.className = 'heart'; h.innerText = '❤️';
