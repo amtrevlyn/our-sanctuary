@@ -7,89 +7,104 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
-        :root { --pink: #fb6f92; --matcha: #81c784; --bg: #fdf2f8; --deep-pink: #d63384; }
-        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #ffc2d1, #e8f5e9); margin: 0; padding: 15px; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        :root { --pink: #fb6f92; --matcha: #81c784; --deep-pink: #d63384; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #ffc2d1, #e8f5e9); margin: 0; padding: 10px; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        .container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 20px; border-radius: 30px; width: 100%; max-width: 400px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; border: 3px solid white; position: relative; }
         
-        .container { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 25px; border-radius: 30px; width: 100%; max-width: 400px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; border: 3px solid white; position: relative; z-index: 10; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #bbb; }
+        .online { background: #4caf50; box-shadow: 0 0 8px #4caf50; }
+
+        .status-card { background: white; border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; }
+        .clocks { display: flex; justify-content: space-around; margin-bottom: 10px; font-weight: bold; }
+        .countdown-detail { background: var(--pink); color: white; padding: 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
+
+        #game-area { display: none; background: #fff5f7; border-radius: 20px; padding: 10px; border: 2px dashed var(--pink); margin-bottom: 15px; }
+        #game-canvas { background: white; border-radius: 15px; width: 100%; height: 180px; touch-action: none; border: 1px solid #ffe4e8; }
+
+        #chat-box { height: 180px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 20px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; background: white; }
+        .msg { padding: 8px 12px; border-radius: 15px; max-width: 80%; font-size: 0.8rem; line-height: 1.4; text-align: left; }
+        .msg.wahyu { align-self: flex-start; background: #ffe4e8; border-bottom-left-radius: 0; }
+        .msg.rinol { align-self: flex-end; background: #e8f5e9; border-bottom-right-radius: 0; }
+        .msg.system { align-self: center; background: #f0f0f0; font-size: 0.7rem; color: #666; border-radius: 10px; font-style: italic; }
         
-        /* Floating Decorations */
-        .deco { position: fixed; font-size: 25px; pointer-events: none; z-index: 1; animation: floatAnim 6s infinite ease-in-out; opacity: 0.6; }
-        @keyframes floatAnim { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(20deg); } }
+        /* Gaya Stiker Besar */
+        .msg.sticker { background: transparent !important; font-size: 2.5rem; padding: 0; }
 
-        h1 { color: var(--deep-pink); margin: 0; font-size: 1.6rem; text-shadow: 2px 2px white; }
-        .status-card { background: white; border-radius: 20px; padding: 15px; margin: 15px 0; border: 1px solid #eee; }
-        .time { font-size: 1.2rem; font-weight: bold; color: #333; }
-        .countdown { background: var(--pink); color: white; padding: 10px; border-radius: 15px; font-weight: bold; font-size: 0.85rem; margin-top: 10px; }
+        .sticker-panel { display: flex; justify-content: space-around; background: #fff; padding: 8px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #ffe4e8; }
+        .sticker-btn { cursor: pointer; transition: 0.2s; }
+        .sticker-btn:hover { transform: scale(1.2); }
 
-        /* Chat System */
-        #chat-box { height: 180px; overflow-y: auto; border: 1px solid #eee; padding: 12px; border-radius: 20px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.5); }
-        .msg { padding: 8px 12px; border-radius: 15px; max-width: 75%; font-size: 0.85rem; line-height: 1.4; }
-        .msg.wahyu { align-self: flex-start; background: #ffe4e8; border-bottom-left-radius: 0; text-align: left; }
-        .msg.rinol { align-self: flex-end; background: #e8f5e9; border-bottom-right-radius: 0; text-align: right; }
-        .msg.sticker { font-size: 2.5rem; background: none !important; box-shadow: none !important; }
+        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; padding: 10px; margin-bottom: 6px; color: white; transition: 0.3s; }
+        .btn-game { background: var(--matcha); }
+        .btn-send { background: var(--pink); width: auto; padding: 0 20px; margin: 0; }
 
-        /* Sticker Panel */
-        .sticker-panel { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-        .sticker-btn { font-size: 1.8rem; cursor: pointer; transition: 0.2s; border: none; background: none; }
-        .sticker-btn:hover { transform: scale(1.3); }
+        .music-player { background: #fff; padding: 15px; border-radius: 20px; margin-top: 15px; border: 1.5px solid var(--pink); }
+        audio { width: 100%; height: 30px; }
 
-        .input-area { display: flex; gap: 5px; margin-bottom: 10px; }
-        input[type="text"] { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid #ddd; outline: none; }
-        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-send { background: var(--pink); color: white; padding: 0 15px; }
-        .btn-kangen { background: #ff85a2; color: white; width: 100%; padding: 10px; margin-bottom: 8px; }
-        .btn-hug { background: white; color: var(--pink); border: 2px solid var(--pink); width: 100%; padding: 10px; border-radius: 50px; }
-
-        /* Music Box */
-        .music-box { margin-top: 20px; background: white; padding: 10px; border-radius: 20px; border: 1px solid #ddd; }
-        iframe { border-radius: 15px; width: 100%; height: 60px; }
-
-        @keyframes floatUp { to { transform: translateY(-120vh); opacity: 0; } }
+        .heart-particle { position: fixed; pointer-events: none; z-index: 100; animation: floatUp 3s forwards; font-size: 25px; }
+        @keyframes floatUp { to { transform: translateY(-100vh); opacity: 0; } }
     </style>
 </head>
-<body>
-
-<div class="deco" style="top:10%; left:5%;">🐱</div>
-<div class="deco" style="top:25%; right:10%; animation-delay: 2s;">🌸</div>
-<div class="deco" style="bottom:20%; left:10%; animation-delay: 4s;">🧀</div>
+<body onclick="playMusicOnce()">
 
 <div class="container">
-    <h1>Our Sanctuary 🌸</h1>
-    
+    <h2 style="color: var(--deep-pink); margin: 0 0 10px 0;">Our Sanctuary 🌸</h2>
+
     <div class="status-card">
-        <div style="display:flex; justify-content: space-around;">
-            <div><small>Wahyu</small><div id="clock1" class="time">00:00</div></div>
-            <div><small>Rinol</small><div id="clock2" class="time">00:00</div></div>
+        <div class="clocks">
+            <div>
+                <small><span id="dot-wahyu" class="status-dot"></span>Wahyu</small><br>
+                <span id="clock1" style="font-size:0.9rem">00:00:00</span>
+            </div>
+            <div>
+                <small><span id="dot-rinol" class="status-dot"></span>Rinol</small><br>
+                <span id="clock2" style="font-size:0.9rem">00:00:00</span>
+            </div>
         </div>
-        <div class="countdown" id="timer">Memuat hari...</div>
+        <div class="countdown-detail" id="timer-full">Menghitung...</div>
     </div>
 
-    <select id="user-role" style="width:100%; padding:8px; border-radius:10px; border:1px solid var(--pink); margin-bottom:10px;">
+    <div id="game-area">
+        <div style="display:flex; justify-content:space-between; font-size:0.7rem; font-weight:bold; margin-bottom:5px;">
+            <span>Sisa: <span id="game-timer">60</span>s</span>
+            <span>Skor: <span id="current-score">0</span></span>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <button id="btn-submit-score" class="btn" style="background:var(--pink); display:none; margin-top:10px;" onclick="submitScore()">Kirim Skor ke Chat 🏆</button>
+    </div>
+    <button id="btn-toggle-game" class="btn btn-game" onclick="toggleGame()">🎮 Main Game (1 Menit)</button>
+
+    <select id="user-role" onchange="updateUserRole()" style="width:100%; padding:10px; border-radius:12px; border:2px solid var(--pink); margin-bottom:10px; background: white;">
         <option value="Wahyu">Aku Wahyu</option>
         <option value="Rinol">Aku Rinol</option>
     </select>
 
-    <div id="chat-box"></div>
-
     <div class="sticker-panel">
-        <button class="sticker-btn" onclick="sendSticker('🐱')">🐱</button>
-        <button class="sticker-btn" onclick="sendSticker('🌸')">🌸</button>
-        <button class="sticker-btn" onclick="sendSticker('🧀')">🧀</button>
-        <button class="sticker-btn" onclick="sendSticker('🍵')">🍵</button>
-        <button class="sticker-btn" onclick="sendSticker('🥺')">🥺</button>
+        <span class="sticker-btn" onclick="sendSticker('🐱')">🐱</span>
+        <span class="sticker-btn" onclick="sendSticker('💖')">💖</span>
+        <span class="sticker-btn" onclick="sendSticker('🥺')">🥺</span>
+        <span class="sticker-btn" onclick="sendSticker('🫂')">🫂</span>
+        <span class="sticker-btn" onclick="sendSticker('🌹')">🌹</span>
+        <span class="sticker-btn" onclick="sendSticker('🧀')">🧀</span>
     </div>
 
-    <div class="input-area">
-        <input type="text" id="msg-input" placeholder="Ketik sesuatu...">
+    <div id="chat-box"></div>
+
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+        <input type="text" id="msg-input" style="flex:1; border-radius:12px; border:1px solid #ddd; padding:10px;" placeholder="Tulis sesuatu...">
         <button class="btn btn-send" onclick="sendMessage()">Kirim</button>
     </div>
 
-    <button class="btn btn-kangen" onclick="sendKangen()">Lagi Kangen Berat 🥺</button>
-    <button class="btn btn-hug" onclick="spawnHearts()">Kirim Pelukan ❤️</button>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+        <button class="btn" style="background:#ff85a2" onclick="sendKangen()">Kangen 🥺</button>
+        <button class="btn" style="background:white; color:var(--pink); border:1.5px solid var(--pink)" onclick="sendHug()">Peluk ❤️</button>
+    </div>
 
-    <div class="music-box">
-        <p style="font-size: 0.7rem; margin-bottom: 5px;">🎵 Lagu Buat Kita</p>
-        <iframe src="https://www.youtube.com/embed/videoseries?list=PL4fGSI1pDJn6jWnvWbcL6vX-G-7z_A6I6&autoplay=0" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+    <div class="music-player">
+        <small style="color: var(--deep-pink); font-weight: bold;">🎵 Glue Song - beabadoobee</small>
+        <audio id="bgMusic" controls loop>
+            <source src="glue.mp3" type="audio/mpeg">
+        </audio>
     </div>
 </div>
 
@@ -103,63 +118,101 @@
         messagingSenderId: "105255547339",
         appId: "1:105255547339:web:5e6a3f53a5c8056000064e"
     };
-
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    function updateDashboard() {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('clock1').innerText = timeStr;
-        document.getElementById('clock2').innerText = timeStr;
-        const target = new Date("July 31, 2026 00:00:00").getTime();
-        const diff = target - now.getTime();
-        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-        document.getElementById('timer').innerText = `${d} Hari Menuju Berau ✈️`;
+    function playMusicOnce() {
+        const audio = document.getElementById('bgMusic');
+        if (audio.paused) audio.play().catch(e => {});
     }
-    setInterval(updateDashboard, 1000); updateDashboard();
 
-    function sendMessage() {
+    function updateUserRole() {
         const user = document.getElementById('user-role').value;
-        const text = document.getElementById('msg-input').value;
-        if(text.trim() !== "") {
-            database.ref("messages").push().set({ sender: user, text: text, type: 'text' });
-            document.getElementById('msg-input').value = "";
-        }
+        const userStatusRef = database.ref('status/' + user);
+        database.ref('.info/connected').on('value', (s) => {
+            if (s.val() === true) {
+                userStatusRef.onDisconnect().set('offline');
+                userStatusRef.set('online');
+            }
+        });
+    }
+    updateUserRole();
+
+    database.ref('status/Wahyu').on('value', (s) => document.getElementById('dot-wahyu').className = 'status-dot ' + (s.val()==='online'?'online':''));
+    database.ref('status/Rinol').on('value', (s) => document.getElementById('dot-rinol').className = 'status-dot ' + (s.val()==='online'?'online':''));
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock1').innerText = now.toLocaleTimeString('id-ID');
+        document.getElementById('clock2').innerText = now.toLocaleTimeString('id-ID');
+        const diff = new Date("July 31, 2026").getTime() - now.getTime();
+        const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+        document.getElementById('timer-full').innerText = `${d} Hari : ${h} Jam : ${m} Menit : ${s} Detik`;
+    }
+    setInterval(updateClock, 1000);
+
+    // GAME
+    const canvas = document.getElementById('game-canvas'), ctx = canvas.getContext('2d');
+    let gameActive = false, score = 0, timeLeft = 60, basket = { x: 100, y: 140 }, items = [];
+
+    function toggleGame() {
+        if(gameActive) return;
+        gameActive = true; score = 0; timeLeft = 60; items = [];
+        document.getElementById('game-area').style.display = 'block';
+        document.getElementById('btn-submit-score').style.display = 'none';
+        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+        let timer = setInterval(() => { timeLeft--; document.getElementById('game-timer').innerText = timeLeft; if(timeLeft<=0){ clearInterval(timer); gameActive=false; document.getElementById('btn-submit-score').style.display='block'; }}, 1000);
+        gameLoop();
+        playMusicOnce();
+    }
+
+    function gameLoop() {
+        if(!gameActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "30px Arial"; ctx.fillText("🐱", basket.x-15, basket.y+20);
+        if(Math.random()<0.05) items.push({x:Math.random()*(canvas.width-20), y:0});
+        items.forEach((it, i) => { 
+            it.y += 3; ctx.fillText("❤️", it.x, it.y);
+            if(it.y>basket.y-10 && it.y<basket.y+20 && it.x>basket.x-25 && it.x<basket.x+25){ items.splice(i,1); score++; document.getElementById('current-score').innerText=score; }
+        });
+        requestAnimationFrame(gameLoop);
+    }
+    canvas.addEventListener('touchmove', (e) => basket.x = e.touches[0].clientX - canvas.getBoundingClientRect().left);
+
+    // CHAT & STICKER
+    function sendMessage() {
+        const u = document.getElementById('user-role').value, t = document.getElementById('msg-input').value;
+        if(t.trim()){ database.ref("messages").push().set({sender:u, text:t, type:'chat'}); document.getElementById('msg-input').value=""; playMusicOnce(); }
     }
 
     function sendSticker(emoji) {
-        const user = document.getElementById('user-role').value;
-        database.ref("messages").push().set({ sender: user, text: emoji, type: 'sticker' });
+        const u = document.getElementById('user-role').value;
+        database.ref("messages").push().set({sender:u, text:emoji, type:'sticker'});
+        playMusicOnce();
     }
 
-    function sendKangen() {
-        const user = document.getElementById('user-role').value;
-        database.ref("messages").push().set({ sender: "SISTEM", text: `💖 ${user} LAGI KANGEN BANGET! 🥺`, type: 'text' });
+    function submitScore() { database.ref("messages").push().set({sender:"GAME", text:`🏆 ${document.getElementById('user-role').value} skor: ${score}!`, type:'system'}); document.getElementById('game-area').style.display='none'; }
+    function sendKangen() { database.ref("messages").push().set({sender:"SISTEM", text:`💖 ${document.getElementById('user-role').value} KANGEN BERAT! 🥺`, type:'system'}); playMusicOnce(); }
+    
+    function sendHug() {
+        database.ref("messages").push().set({sender:"SISTEM", text:`🫂 ${document.getElementById('user-role').value} kirim pelukan...`, type:'system'});
+        playMusicOnce();
+        for(let i=0; i<15; i++) {
+            const h = document.createElement('div'); h.className='heart-particle'; h.innerText='❤️'; h.style.left=Math.random()*100+'vw'; h.style.top='100vh';
+            document.body.appendChild(h); setTimeout(()=>h.remove(), 3000);
+        }
     }
 
     database.ref("messages").limitToLast(10).on("value", (snap) => {
-        const chatBox = document.getElementById('chat-box'); chatBox.innerHTML = "";
-        snap.forEach((child) => {
-            const data = child.val();
-            const div = document.createElement("div");
-            div.className = `msg ${data.sender.toLowerCase()} ${data.type === 'sticker' ? 'sticker' : ''}`;
-            div.innerHTML = data.type === 'text' ? `<small style="display:block; font-size:0.5rem; opacity:0.5">${data.sender}</small>${data.text}` : data.text;
-            chatBox.appendChild(div);
+        const box = document.getElementById('chat-box'); box.innerHTML = "";
+        snap.forEach(c => {
+            const d = c.val(), div = document.createElement("div");
+            div.className = `msg ${d.sender.toLowerCase()} ${d.type||''}`;
+            div.innerHTML = d.type==='system' ? d.text : `<small style="display:block;font-size:0.5rem;opacity:0.6">${d.sender}</small>${d.text}`;
+            box.appendChild(div);
         });
-        chatBox.scrollTop = chatBox.scrollHeight;
+        box.scrollTop = box.scrollHeight;
     });
-
-    function spawnHearts() {
-        for(let i=0; i<15; i++) {
-            const h = document.createElement('div'); h.className = 'deco'; h.innerText = '❤️';
-            h.style.left = Math.random() * 100 + 'vw'; h.style.top = '100vh';
-            h.style.animation = 'floatUp 3s forwards';
-            document.body.appendChild(h);
-            setTimeout(() => h.remove(), 3000);
-        }
-    }
-    document.getElementById('msg-input').addEventListener("keyup", (e) => { if(e.key === "Enter") sendMessage(); });
 </script>
 </body>
 </html>
