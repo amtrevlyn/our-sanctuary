@@ -516,6 +516,7 @@
     
     document.getElementById("upload-btn").onclick = () => myWidget.open();
 
+   // --- GALLERY WITH ACCORDION ALBUMS ---
     database.ref('gallery').on('value', snap => {
         const container = document.getElementById('gallery-container'); 
         if(!container) return;
@@ -531,37 +532,54 @@
             folders[fName].push({ ...d, key: c.key });
         });
 
-        // Urutkan folder agar yang terbaru/Umum muncul di atas
+        // Loop untuk membuat album
         for (let folderName in folders) {
             const folderWrapper = document.createElement('div');
-            folderWrapper.style.marginBottom = "25px";
+            folderWrapper.style.marginBottom = "15px";
             
-            // Header Folder
+            const folderId = "folder-" + folderName.replace(/\s+/g, '-').toLowerCase();
+            
+            // Header Album (Tombol Klik)
             const header = document.createElement('div');
-            header.innerHTML = `📁 <b>${folderName}</b> <span style="font-size:0.7rem; color:#888;">(${folders[folderName].length} foto)</span>`;
-            header.style.cssText = "background:#ffeaef; padding:10px; border-radius:12px; margin-bottom:10px; color:#7a3e4d; font-size:0.85rem; border-left:4px solid var(--pink);";
-            folderWrapper.appendChild(header);
+            header.innerHTML = `
+                <span>📁 <b>${folderName}</b> <small style="opacity:0.6;">(${folders[folderName].length})</small></span>
+                <span id="icon-${folderId}" style="transition: 0.3s; font-size: 0.7rem;">▼</span>
+            `;
+            header.style.cssText = "background:#ffeaef; padding:12px 15px; border-radius:15px; color:#7a3e4d; font-size:0.85rem; border-left:5px solid var(--pink); display:flex; justify-content:space-between; align-items:center; cursor:pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
 
-            // Grid Foto dalam folder
+            // Grid Foto (Disembunyikan secara default)
             const grid = document.createElement('div');
-            grid.className = 'gallery-grid'; // Menggunakan class CSS yang sudah ada
+            grid.id = folderId;
+            grid.className = 'gallery-grid';
+            grid.style.display = "none"; 
+            grid.style.marginTop = "12px";
+            grid.style.padding = "0 5px";
             
-            // Masukkan foto ke dalam grid (diurutkan terbaru dulu)
             folders[folderName].reverse().forEach(p => {
                 const div = document.createElement('div'); 
                 div.className = 'photo-card';
                 div.innerHTML = `
                     <img src="${p.url}" onclick="window.open('${p.url}', '_blank')">
-                    <div style="font-size:0.6rem; padding:5px;">
-                        <b>${p.sender}</b><br>${p.desc}
+                    <div style="font-size:0.6rem; padding:8px;">
+                        <b style="color:var(--deep-pink)">${p.sender}</b><br>${p.desc}
                     </div>
-                    <button style="border:none; background:none; color:red; font-size:0.6rem; cursor:pointer;" onclick="deletePhoto('${p.key}')">🗑️ Hapus</button>
+                    <button style="border:none; background:none; color:red; font-size:0.6rem; padding: 5px; cursor:pointer;" onclick="deletePhoto('${p.key}')">🗑️ Hapus</button>
                 `;
                 grid.appendChild(div);
             });
 
+            // Logika Klik Buka/Tutup
+            header.onclick = () => {
+                const isOpen = grid.style.display === "grid";
+                const icon = document.getElementById(`icon-${folderId}`);
+                grid.style.display = isOpen ? "none" : "grid";
+                icon.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+                if(navigator.vibrate) navigator.vibrate(20);
+            };
+
+            folderWrapper.appendChild(header);
             folderWrapper.appendChild(grid);
-            container.prepend(folderWrapper); // Folder terbaru muncul paling atas
+            container.prepend(folderWrapper); 
         }
     });
 
