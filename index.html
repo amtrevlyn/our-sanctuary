@@ -6,8 +6,9 @@
     <title>Our Sanctuary | Space 🌸</title>
     
     <meta name="theme-color" content="#ff85a2">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Sanctuary">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2589/2589175.png">
     
@@ -19,8 +20,31 @@
     
     <style>
         :root { --pink: #ff85a2; --soft-pink: #ffdae0; --matcha: #aed581; --deep-pink: #ef476f; --online: #2ecc71; --glass: rgba(255, 255, 255, 0.8); }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #fff0f3; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; touch-action: manipulation; }
-        .container { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); padding: 20px; width: 100%; max-width: 400px; min-height: 100vh; position: relative; padding-bottom: 90px; box-sizing: border-box; display: none; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: #fff0f3; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+            touch-action: manipulation; 
+        }
+        /* Tambahan agar konten tidak tertutup notch/poni iPhone */
+        .container { 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(15px); 
+            padding: 20px; 
+            padding-top: env(safe-area-inset-top); /* Khusus iOS Standalone */
+            width: 100%; 
+            max-width: 400px; 
+            min-height: 100vh; 
+            position: relative; 
+            padding-bottom: calc(90px + env(safe-area-inset-bottom)); 
+            box-sizing: border-box; 
+            display: none; 
+        }
 
         /* --- NEW LUXURY LOGIN --- */
         #lock-screen { 
