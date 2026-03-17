@@ -305,6 +305,24 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
+    // --- PWA & NOTIFICATION LOGIC ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                console.log('SW Registered');
+            });
+        });
+    }
+
+    function requestNotificationPermission() {
+        if (!("Notification" in window)) return;
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("Notifikasi diizinkan!");
+            }
+        });
+    }
+
     // --- AUTH & NAV ---
     function checkPass() {
         if(document.getElementById('pass-input').value === "14022026") {
@@ -320,8 +338,8 @@
             setTimeout(() => { ls.style.display = "none"; }, 1000);
             
             updateOnlineStatus(); toggleMusic(); listenMoods(); initTyping(); listenHealth();
+            requestNotificationPermission(); // Minta izin notifikasi setelah login
             
-            // PAKSA SCROLL SETELAH LOGIN SELESAI
             setTimeout(forceScroll, 1200);
         } else { 
             alert("Kode Salah Sayang! Cek Ulang Ya Cintaku💕"); 
@@ -337,19 +355,13 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
         if(id === 'sec-game') { loadLeaderboard(); resizeCanvas(); }
-        // PAKSA SCROLL SAAT PINDAH KE TAB CHAT
         if(id === 'sec-chat') setTimeout(forceScroll, 100);
     }
 
-    // --- FUNGSI KHUSUS AUTO SCROLL ---
     function forceScroll() {
         const box = document.getElementById('chat-box');
         if (box) {
-            box.scrollTo({
-                top: box.scrollHeight,
-                behavior: 'smooth'
-            });
-            // Backup jika smooth scroll tidak jalan
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
             box.scrollTop = box.scrollHeight;
         }
     }
@@ -440,7 +452,7 @@
         database.ref('typing/' + window.userRole).set(false);
     }
 
-    // LISTENER CHAT DENGAN AUTO SCROLL
+    // LISTENER CHAT DENGAN NOTIFIKASI
     database.ref("messages").on("value", snap => {
         const box = document.getElementById('chat-box'); 
         if(!box) return;
@@ -465,9 +477,15 @@
                 div.onclick = () => setReply(d.sender, d.text, d.timestamp);
             }
             box.appendChild(div);
+
+            // LOGIKA NOTIFIKASI: Jika pesan baru dari pasangan & aplikasi tidak dibuka
+            if(d.timestamp > Date.now() - 3000 && d.sender !== window.userRole && d.sender !== "SISTEM" && document.hidden) {
+                new Notification(`Pesan Baru dari ${d.sender}`, {
+                    body: d.text,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/2589/2589175.png'
+                });
+            }
         });
-        
-        // Skrol ke bawah setiap ada perubahan data pesan
         setTimeout(forceScroll, 50);
     });
 
@@ -480,7 +498,7 @@
         }
     }
 
-    // --- GAME, MOOD, & MISC LOGIC ---
+    // --- MOOD & MISC ---
     function updateMood(emoji) {
         if(!window.userRole) return;
         database.ref('moods/' + window.userRole).set(emoji);
@@ -492,29 +510,24 @@
         database.ref('moods/Rini').on('value', s => { if(document.getElementById('mood-Rini')) document.getElementById('mood-Rini').innerText = s.val() || '😊'; });
     }
 
-    // --- // --- GALLERY WITH BATCH UPLOAD LOGIC ---
+    // --- CLOUDINARY WIDGET ---
     const myWidget = cloudinary.createUploadWidget({ 
         cloudName: "deuuml0fs", 
         uploadPreset: "yurin_preset",
-        multiple: true, // Memastikan bisa pilih banyak foto
-        maxFiles: 10    // Batas maksimal sekali upload (bisa diubah)
+        multiple: true,
+        maxFiles: 10
     }, (err, res) => {
         if (!err && res && res.event === "success") {
-            // Ambil caption dan folder saat tombol upload ditekan
             const folderName = document.getElementById('folder-name').value.trim() || "Umum";
             const sharedCaption = document.getElementById('photo-desc').value || "No caption";
-            
-            // Simpan ke database menggunakan caption yang sama untuk setiap foto
             database.ref('gallery').push().set({ 
                 url: res.info.secure_url, 
                 sender: window.userRole, 
                 folder: folderName, 
-                desc: sharedCaption, // Menggunakan caption yang sama
+                desc: sharedCaption,
                 timestamp: Date.now() 
             });
         }
-        
-        // Reset input hanya jika semua proses upload dalam satu batch selesai (widget ditutup)
         if (!err && res && res.event === "close") {
             document.getElementById('photo-desc').value = "";
         }
@@ -526,18 +539,13 @@
         }
         myWidget.open();
     };
-    
-    document.getElementById("upload-btn").onclick = () => myWidget.open();
 
-   // --- GALLERY WITH ACCORDION ALBUMS ---
+    // --- GALLERY ALBUMS ---
     database.ref('gallery').on('value', snap => {
         const container = document.getElementById('gallery-container'); 
         if(!container) return;
         container.innerHTML = "";
-        
         let folders = {};
-
-        // Kelompokkan data berdasarkan folder
         snap.forEach(c => {
             const d = c.val();
             const fName = d.folder || "Umum";
@@ -545,48 +553,31 @@
             folders[fName].push({ ...d, key: c.key });
         });
 
-        // Loop untuk membuat album
         for (let folderName in folders) {
             const folderWrapper = document.createElement('div');
             folderWrapper.style.marginBottom = "15px";
-            
             const folderId = "folder-" + folderName.replace(/\s+/g, '-').toLowerCase();
-            
-            // Header Album (Tombol Klik)
             const header = document.createElement('div');
-            header.innerHTML = `
-                <span>📁 <b>${folderName}</b> <small style="opacity:0.6;">(${folders[folderName].length})</small></span>
-                <span id="icon-${folderId}" style="transition: 0.3s; font-size: 0.7rem;">▼</span>
-            `;
-            header.style.cssText = "background:#ffeaef; padding:12px 15px; border-radius:15px; color:#7a3e4d; font-size:0.85rem; border-left:5px solid var(--pink); display:flex; justify-content:space-between; align-items:center; cursor:pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
+            header.innerHTML = `<span>📁 <b>${folderName}</b> <small>(${folders[folderName].length})</small></span><span id="icon-${folderId}" style="transition:0.3s">▼</span>`;
+            header.style.cssText = "background:#ffeaef; padding:12px; border-radius:15px; display:flex; justify-content:space-between; cursor:pointer;";
 
-            // Grid Foto (Disembunyikan secara default)
             const grid = document.createElement('div');
             grid.id = folderId;
             grid.className = 'gallery-grid';
             grid.style.display = "none"; 
             grid.style.marginTop = "12px";
-            grid.style.padding = "0 5px";
             
             folders[folderName].reverse().forEach(p => {
                 const div = document.createElement('div'); 
                 div.className = 'photo-card';
-                div.innerHTML = `
-                    <img src="${p.url}" onclick="window.open('${p.url}', '_blank')">
-                    <div style="font-size:0.6rem; padding:8px;">
-                        <b style="color:var(--deep-pink)">${p.sender}</b><br>${p.desc}
-                    </div>
-                    <button style="border:none; background:none; color:red; font-size:0.6rem; padding: 5px; cursor:pointer;" onclick="deletePhoto('${p.key}')">🗑️ Hapus</button>
-                `;
+                div.innerHTML = `<img src="${p.url}" onclick="window.open('${p.url}', '_blank')"><div style="font-size:0.6rem; padding:8px;"><b>${p.sender}</b><br>${p.desc}</div><button style="border:none; color:red; font-size:0.6rem; cursor:pointer;" onclick="deletePhoto('${p.key}')">🗑️ Hapus</button>`;
                 grid.appendChild(div);
             });
 
-            // Logika Klik Buka/Tutup
             header.onclick = () => {
                 const isOpen = grid.style.display === "grid";
-                const icon = document.getElementById(`icon-${folderId}`);
                 grid.style.display = isOpen ? "none" : "grid";
-                icon.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+                document.getElementById(`icon-${folderId}`).style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
                 if(navigator.vibrate) navigator.vibrate(20);
             };
 
@@ -600,7 +591,7 @@
         if(confirm("Hapus kenangan ini?")) database.ref('gallery').child(k).remove(); 
     }
 
-    // --- GAME LOGIC ---
+    // --- GAME LOGIC (Simplified) ---
     const canvas = document.getElementById('game-canvas'), ctx = canvas.getContext('2d');
     let currentGame = 1, gameActive = false, score = 0, gameLoop, basketX = 150, objects = [], birdY = 150, birdV = 0, pipes = [], timeLeft = 30;
     
@@ -625,7 +616,6 @@
         resizeCanvas(); 
         gameActive = true; score = 0; objects = []; pipes = []; birdY = 150; birdV = 0; timeLeft = 30; 
         document.getElementById('start-btn').style.display = 'none'; 
-        document.getElementById('game-timer').innerText = "30s"; 
         gameLoop = setInterval(update, 20); 
         window.gameTimer = setInterval(() => { 
             if(!gameActive) { clearInterval(window.gameTimer); return; } 
@@ -699,7 +689,7 @@
     });
     canvas.addEventListener('pointermove', handleMove);
 
-    // --- MISC UTILS ---
+    // --- UTILS ---
     function toggleMusic() { 
         const s = document.getElementById('mySong'); 
         s.paused ? (s.play(), document.getElementById('music-btn').innerHTML = "🎶") : (s.pause(), document.getElementById('music-btn').innerHTML = "🎵"); 
@@ -737,7 +727,6 @@
         s.style.left = (Math.random() * window.innerWidth) + 'px';
         s.style.top = window.innerHeight + 'px';
         s.style.fontSize = '24px';
-        s.style.pointerEvents = 'none';
         s.style.zIndex = '10000';
         s.style.transition = 'all 1.5s ease-out';
         document.body.appendChild(s);
@@ -748,21 +737,12 @@
         setTimeout(() => s.remove(), 1500);
     }
 
-    // --- CLOCK & COUNTDOWN TICKER ---
+    // --- CLOCK TICKER ---
     setInterval(() => {
         const now = new Date();
-        const wahyuClock = document.getElementById('clock-wahyu');
-        const RiniClock = document.getElementById('clock-Rini');
-
-        const timeString = now.toLocaleTimeString('id-ID', {
-            timeZone: 'Asia/Makassar', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit'
-        });
-
-        if(wahyuClock) wahyuClock.innerText = timeString;
-        if(RiniClock) RiniClock.innerText = timeString;
+        const timeString = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        if(document.getElementById('clock-wahyu')) document.getElementById('clock-wahyu').innerText = timeString;
+        if(document.getElementById('clock-Rini')) document.getElementById('clock-Rini').innerText = timeString;
 
         const diff = new Date("July 31, 2026").getTime() - now.getTime();
         if(diff > 0 && document.getElementById('cd-d')) {
@@ -775,4 +755,4 @@
 </script>
 
 </body>
-</html>
+</html>s
