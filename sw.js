@@ -1,16 +1,20 @@
 const CACHE_NAME = 'sanctuary-cache-v1';
 const assetsToCache = [
     './',
-    './index.html',
-    'https://cdn-icons-png.flaticon.com/512/2589/2589175.png'
+    './index.html'
 ];
 
 self.addEventListener('install', event => {
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll(assetsToCache);
         })
     );
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(clients.claim());
 });
 
 self.addEventListener('fetch', event => {
