@@ -492,27 +492,40 @@
         database.ref('moods/Rini').on('value', s => { if(document.getElementById('mood-Rini')) document.getElementById('mood-Rini').innerText = s.val() || '😊'; });
     }
 
-    // --- GALLERY WITH FOLDERS LOGIC ---
+    // --- // --- GALLERY WITH BATCH UPLOAD LOGIC ---
     const myWidget = cloudinary.createUploadWidget({ 
         cloudName: "deuuml0fs", 
-        uploadPreset: "yurin_preset" 
+        uploadPreset: "yurin_preset",
+        multiple: true, // Memastikan bisa pilih banyak foto
+        maxFiles: 10    // Batas maksimal sekali upload (bisa diubah)
     }, (err, res) => {
         if (!err && res && res.event === "success") {
-            // Ambil nama folder dari input, default ke "Umum"
+            // Ambil caption dan folder saat tombol upload ditekan
             const folderName = document.getElementById('folder-name').value.trim() || "Umum";
+            const sharedCaption = document.getElementById('photo-desc').value || "No caption";
             
+            // Simpan ke database menggunakan caption yang sama untuk setiap foto
             database.ref('gallery').push().set({ 
                 url: res.info.secure_url, 
                 sender: window.userRole, 
-                folder: folderName, // Data folder baru
-                desc: document.getElementById('photo-desc').value || "No caption", 
+                folder: folderName, 
+                desc: sharedCaption, // Menggunakan caption yang sama
                 timestamp: Date.now() 
             });
-            
+        }
+        
+        // Reset input hanya jika semua proses upload dalam satu batch selesai (widget ditutup)
+        if (!err && res && res.event === "close") {
             document.getElementById('photo-desc').value = "";
-            // Optional: jangan hapus folderName agar user bisa upload berkali-kali ke folder yang sama
         }
     });
+    
+    document.getElementById("upload-btn").onclick = () => {
+        if(!document.getElementById('photo-desc').value.trim()){
+            if(!confirm("Upload tanpa caption?")) return;
+        }
+        myWidget.open();
+    };
     
     document.getElementById("upload-btn").onclick = () => myWidget.open();
 
